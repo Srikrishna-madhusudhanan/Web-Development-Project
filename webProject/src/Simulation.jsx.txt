@@ -1,0 +1,193 @@
+import React, { useEffect, useRef } from 'react';
+import "./Simulation.css";
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+const Simulation = () => {
+  const mountRef = useRef(null); // Ref to mount the Three.js canvas
+  const sceneRef = useRef(new THREE.Scene());
+  const cameraRef = useRef(new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000));
+  const rendererRef = useRef(new THREE.WebGLRenderer({ antialias: true }));
+  const controlsRef = useRef(null);
+  const currentAnimalModelRef = useRef(null); // Store the currently loaded animal model
+
+  // Initialize the Three.js scene
+  const initScene = () => {
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    const renderer = rendererRef.current;
+
+    // Renderer setup
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000);
+    renderer.shadowMap.enabled = true;
+    mountRef.current.appendChild(renderer.domElement);
+
+    // Camera setup
+    camera.position.set(1, 2, 3);
+
+    // Orbit controls setup
+    controlsRef.current = new OrbitControls(camera, renderer.domElement);
+    controlsRef.current.enableDamping = true;
+    controlsRef.current.enablePan = false;
+    controlsRef.current.minDistance = 2;
+    controlsRef.current.maxDistance = 20;
+
+    // Add a ground plane
+    const groundGeometry = new THREE.PlaneGeometry(20, 20);
+    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+    const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+    groundMesh.rotation.x = -Math.PI / 2; // Rotate to lay flat
+    scene.add(groundMesh);
+
+    // Add a spotlight
+    const spotLight = new THREE.SpotLight(0xffffff);
+    spotLight.position.set(20, 25, 20);
+    spotLight.castShadow = true;
+    scene.add(spotLight);
+
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+      controlsRef.current.update();
+      renderer.render(scene, camera);
+    };
+
+    animate();
+  };
+
+  // Function to load the animal model dynamically
+  const loadAnimalScript = async (animal) => {
+    let scriptPath;
+
+    switch (animal) {
+      case 'dog':
+        scriptPath = './dog.js';
+        break;
+      case 'cat':
+        scriptPath = './cat.js';
+        break;
+      case 'tiger':
+        scriptPath = './tiger.js';
+        break;
+      default:
+        console.error('Unknown animal:', animal);
+        return;
+    }
+
+    try {
+      const module = await import(scriptPath);
+      console.log(`${animal} script loaded successfully`, module);
+
+      // Remove the previous animal model if it exists
+      if (currentAnimalModelRef.current) {
+        sceneRef.current.remove(currentAnimalModelRef.current);
+        currentAnimalModelRef.current = null; // Clear the reference
+      }
+
+      // Call the initialization function of the loaded module to get the new model
+      if (module.initialize) {
+        const newModel = await module.initialize();
+        currentAnimalModelRef.current = newModel; // Save the reference to the current model
+
+        // Add the new model to the scene
+        sceneRef.current.add(currentAnimalModelRef.current);
+
+        // Update controls target and position camera to fit the model
+        controlsRef.current.target.set(
+          currentAnimalModelRef.current.position.x,
+          currentAnimalModelRef.current.position.y,
+          currentAnimalModelRef.current.position.z
+        );
+        controlsRef.current.update();
+
+        // Set camera position for a better view
+        cameraRef.current.position.set(1, 2, 3); // Adjust if needed
+      }
+    } catch (err) {
+      console.error(`Error loading ${animal} script`, err);
+    }
+  };
+
+  // Event listeners for buttons
+  const addEventListeners = () => {
+    const dogButton = document.getElementById('dog');
+    const catButton = document.getElementById('cat');
+    const tigerButton = document.getElementById('tiger');
+
+    dogButton.addEventListener('click', () => {
+      loadAnimalScript('dog');
+      resizeRenderer();
+    });
+    catButton.addEventListener('click', () => {
+      loadAnimalScript('cat');
+      resizeRenderer();
+    });
+    tigerButton.addEventListener('click', () => {
+      loadAnimalScript('tiger');
+      resizeRenderer();
+    });
+
+    return () => {
+      dogButton.removeEventListener('click', () => loadAnimalScript('dog'));
+      catButton.removeEventListener('click', () => loadAnimalScript('cat'));
+      tigerButton.removeEventListener('click', () => loadAnimalScript('tiger'));
+    };
+  };
+
+  // Adjust renderer size for full screen
+  const resizeRenderer = () => {
+    const renderer = rendererRef.current;
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  };
+
+  // Setup on component mount
+  useEffect(() => {
+    initScene();
+    const cleanup = addEventListeners();
+
+    // Cleanup function
+    return () => {
+      cleanup();
+    };
+  }, []);
+
+  return (
+    <div>
+      <div id="heading">
+        <div className="border"></div>
+      </div>
+      <div id="progress-container">
+        <div id="progress"></div>
+      </div>
+      <div className="ButtonLeft">
+        <div id="dog">
+          <button>&#128021;</button>
+        </div>
+        <div id="cat">
+          <button>&#128008;</button>
+        </div>
+        <div id="tiger">
+          <button>&#128005;</button>
+        </div>
+      </div>
+      <div className="ButtonRight">
+        <div id="playsound">
+          <button><i className="fa-solid fa-volume-high"></i></button>
+        </div>
+        <div id="jump">
+          <button><i className="fa-solid fa-arrow-turn-up"></i></button>
+        </div>
+        <div id="turnleft">
+          <button><i className="fa-solid fa-arrow-rotate-right"></i></button>
+        </div>
+        <div id="turnright">
+          <button className='fas fa-undo'></button>
+        </div>
+      </div>
+      <div ref={mountRef} />
+    </div>
+  );
+};
+
+export default Simulation;

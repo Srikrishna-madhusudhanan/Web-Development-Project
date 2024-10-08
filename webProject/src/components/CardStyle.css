@@ -1,0 +1,56 @@
+
+.card {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
+  transition: all 0.3s ease;
+  background-color: rgb(185, 174, 153);
+  border-radius: 15px;
+}
+
+.card-body {
+  color: black;
+  border-radius: 15px;
+}
+
+.card-text {
+  color: black;
+}
+
+.card:hover {
+  transform: scale(1.05); 
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); 
+  border-radius: 15px;
+}
+
+
+.card:hover .card-body {
+  background-color: rgb(185, 174, 153); 
+}
+
+
+.card:hover .card-title {
+  color: black; 
+}
+
+.container {
+  margin-top: 50px;
+  margin-bottom: 5%;
+}
+.btn {
+  background-color: green;
+  border: 2px solid green;
+}
+
+.btn:hover {
+  background-color: rgb(10, 74, 10);
+  border: 2px solid rgb(10, 74, 10);
+}
+
+.sep {
+  position: relative;
+  height: 7px;
+  background-color: rgb(46, 44, 44);
+  z-index: 11;
+  margin-top: 0px;
+  margin-bottom: 5%;
+  width: 100%;
+}
